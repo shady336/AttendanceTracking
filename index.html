@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, user-scalable=no"
+        />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="theme-color" content="#2196F3" />
+        <title>Attendance Tracker</title>
+        <link rel="manifest" href="manifest.json" />
+        <link rel="stylesheet" href="styles.css" />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        />
+    </head>
+    <body>
+        <!-- Header -->
+        <header class="header">
+            <h1 class="header-title">Attendance Tracker</h1>
+            <div class="header-date" id="currentDate"></div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-view="attendance">
+                <i class="fas fa-calendar-check"></i>
+                <span>Attendance</span>
+            </button>
+            <button class="nav-tab" data-view="people">
+                <i class="fas fa-users"></i>
+                <span>People</span>
+            </button>
+            <button class="nav-tab" data-view="history">
+                <i class="fas fa-history"></i>
+                <span>History</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Attendance View -->
+            <div class="view active" id="attendance-view">
+                <div class="view-header">
+                    <h2>Attendance</h2>
+                    <div class="date-selector">
+                        <input type="date" id="attendanceDate" class="date-input">
+                        <button class="btn btn-secondary" id="attendanceTodayBtn">Today</button>
+                    </div>
+                </div>
+                <div class="attendance-actions">
+                    <button class="btn btn-primary" id="markAllPresent">
+                        <i class="fas fa-check-double"></i>
+                        Mark All Present
+                    </button>
+                </div>
+                <div class="attendance-list" id="attendanceList">
+                    <!-- Attendance items will be populated here -->
+                </div>
+                <div
+                    class="empty-state"
+                    id="attendanceEmptyState"
+                    style="display: none"
+                >
+                    <i class="fas fa-users-slash"></i>
+                    <h3>No People Added</h3>
+                    <p>
+                        Add people in the People tab to start tracking
+                        attendance
+                    </p>
+                </div>
+            </div>
+
+            <!-- People Management View -->
+            <div class="view" id="people-view">
+                <div class="view-header">
+                    <h2>Manage People</h2>
+                    <button class="btn btn-primary" id="addPersonBtn">
+                        <i class="fas fa-plus"></i>
+                        Add Person
+                    </button>
+                </div>
+                <div class="people-list" id="peopleList">
+                    <!-- People items will be populated here -->
+                </div>
+                <div
+                    class="empty-state"
+                    id="peopleEmptyState"
+                    style="display: none"
+                >
+                    <i class="fas fa-user-plus"></i>
+                    <h3>No People Added</h3>
+                    <p>Tap the Add Person button to get started</p>
+                </div>
+            </div>
+
+            <!-- History View -->
+            <div class="view" id="history-view">
+                <div class="view-header">
+                    <h2>Attendance History</h2>
+                    <div class="date-selector">
+                        <input
+                            type="date"
+                            id="historyDate"
+                            class="date-input"
+                        />
+                        <button class="btn btn-secondary" id="todayBtn">
+                            Today
+                        </button>
+                    </div>
+                </div>
+                <div class="history-list" id="historyList">
+                    <!-- History items will be populated here -->
+                </div>
+                <div
+                    class="empty-state"
+                    id="historyEmptyState"
+                    style="display: none"
+                >
+                    <i class="fas fa-calendar-times"></i>
+                    <h3>No Records Found</h3>
+                    <p>No attendance records for the selected date</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modal for Adding/Editing Person -->
+        <div class="modal" id="personModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Add Person</h3>
+                    <button class="modal-close" id="closeModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form class="modal-body" id="personForm">
+                    <div class="form-group">
+                        <label for="personName">Name *</label>
+                        <input type="text" id="personName" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="personPhone">Phone Number</label>
+                        <input type="tel" id="personPhone" />
+                    </div>
+                    <div class="form-group">
+                        <label for="personService">Service</label>
+                        <input
+                            type="text"
+                            id="personService"
+                            placeholder="e.g., Cleaning, Security, etc."
+                        />
+                    </div>
+                    <div class="form-actions">
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            id="cancelBtn"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                            id="saveBtn"
+                        >
+                            Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Overlay -->
+        <div class="modal-overlay" id="modalOverlay"></div>
+
+        <!-- Toast Notifications -->
+        <div class="toast" id="toast">
+            <div class="toast-content">
+                <span class="toast-message" id="toastMessage"></span>
+                <button class="toast-close" id="toastClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <script src="app.js"></script>
+    </body>
+</html>
