@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendance-tracker-v3';
+const CACHE_NAME = 'attendance-tracker-v4';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -17,20 +17,29 @@ self.addEventListener('install', event => {
                 return cache.addAll(urlsToCache);
             })
     );
+    // Force the waiting service worker to become the active service worker
+    self.skipWaiting();
 });
 
-// Fetch Event
+// Fetch Event - Network First Strategy for development
 self.addEventListener('fetch', event => {
     event.respondWith(
-        caches.match(event.request)
+        fetch(event.request)
             .then(response => {
-                // Return cached version or fetch from network
-                if (response) {
-                    return response;
+                // If fetch succeeds, update cache with new version
+                if (response.status === 200) {
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME)
+                        .then(cache => {
+                            cache.put(event.request, responseClone);
+                        });
                 }
-                return fetch(event.request);
-            }
-        )
+                return response;
+            })
+            .catch(() => {
+                // If network fails, try to get from cache
+                return caches.match(event.request);
+            })
     );
 });
 
@@ -48,4 +57,6 @@ self.addEventListener('activate', event => {
             );
         })
     );
+    // Ensure the new service worker takes control immediately
+    return self.clients.claim();
 });
