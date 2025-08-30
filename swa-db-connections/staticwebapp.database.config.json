@@ -27,7 +27,10 @@
   },
   "entities": {
     "people": {
-      "source": "people",
+      "source": {
+        "container": "people",
+        "partitionKey": "/id"
+      },
       "permissions": [
         {
           "actions": ["create", "read", "update", "delete"],
@@ -36,7 +39,10 @@
       ]
     },
     "attendance": {
-      "source": "attendance",
+      "source": {
+        "container": "attendance",
+        "partitionKey": "/date"
+      },
       "permissions": [
         {
           "actions": ["create", "read", "update", "delete"],

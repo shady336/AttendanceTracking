@@ -85,8 +85,8 @@ async function isDataApiAvailable() {
     if (dataApiAvailable !== null) return dataApiAvailable;
     try {
         const res = await fetch(`${DATA_API_BASE}/people`, { method: "GET" });
-        // If endpoint exists, we may get 200/401/403 depending on auth; any is fine to mark available
-        dataApiAvailable = res.ok || res.status === 401 || res.status === 403;
+        // If endpoint exists, we may get 200/401/403/400 (400 often means DB/config issue but endpoint is present)
+        dataApiAvailable = res.ok || res.status === 401 || res.status === 403 || res.status === 400;
     } catch {
         dataApiAvailable = false;
     }
