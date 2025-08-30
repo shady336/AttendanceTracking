@@ -53,7 +53,10 @@ function loadData() {
         const savedRecords = localStorage.getItem("attendanceRecords");
 
         people = savedPeople ? JSON.parse(savedPeople) : [];
-        attendanceRecords = savedRecords ? JSON.parse(savedRecords) : {};
+    attendanceRecords = savedRecords ? JSON.parse(savedRecords) : {};
+
+    // Migrate records to new structure with daily flags if needed
+    migrateAttendanceRecords();
 
         // Ensure today's records exist
         ensureTodayRecords();
@@ -86,17 +89,33 @@ function ensureTodayRecords() {
 function ensureDateRecords(date) {
     if (!attendanceRecords[date]) {
         attendanceRecords[date] = {};
-        people.forEach((person) => {
-            attendanceRecords[date][person.id] = "pending";
-        });
-    } else {
-        // Add any new people to the date's records
-        people.forEach((person) => {
-            if (!(person.id in attendanceRecords[date])) {
-                attendanceRecords[date][person.id] = "pending";
-            }
-        });
     }
+    // Ensure each person has an entry object for the date
+    people.forEach((person) => {
+        const rec = attendanceRecords[date][person.id];
+        if (!rec || typeof rec === "string") {
+            attendanceRecords[date][person.id] =
+                typeof rec === "string"
+                    ? {
+                          status: rec,
+                          liturgy: false,
+                          bible: false,
+                          serviceMeeting: false,
+                      }
+                    : {
+                          status: "pending",
+                          liturgy: false,
+                          bible: false,
+                          serviceMeeting: false,
+                      };
+        } else {
+            // Fill missing fields if any
+            rec.status = rec.status || "pending";
+            rec.liturgy = !!rec.liturgy;
+            rec.bible = !!rec.bible;
+            rec.serviceMeeting = !!rec.serviceMeeting;
+        }
+    });
 }
 
 // Utility Functions
@@ -225,17 +244,38 @@ function renderAttendanceView() {
 
     attendanceList.innerHTML = people
         .map((person) => {
-            const status =
-                attendanceRecords[selectedDate][person.id] || "pending";
+            const rec = attendanceRecords[selectedDate][person.id] || {
+                status: "pending",
+                liturgy: false,
+                bible: false,
+                serviceMeeting: false,
+            };
             return `
             <div class="attendance-item">
                 <div class="attendance-info">
                     <div class="attendance-name">${escapeHtml(person.name)}</div>
                     <div class="attendance-service">${escapeHtml(person.service || "لم يتم تحديد خدمة")}</div>
+                    <div class="daily-flags" style="margin-top: 0.4rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <label class="checkbox-label" style="padding-right: 1.6rem;">
+                            <input type="checkbox" ${rec.liturgy ? "checked" : ""} onchange="setDailyFlag('${person.id}','liturgy', this.checked)" />
+                            <span class="checkmark"></span>
+                            حضور القداس
+                        </label>
+                        <label class="checkbox-label" style="padding-right: 1.6rem;">
+                            <input type="checkbox" ${rec.bible ? "checked" : ""} onchange="setDailyFlag('${person.id}','bible', this.checked)" />
+                            <span class="checkmark"></span>
+                            إحضار الكتاب المقدس
+                        </label>
+                        <label class="checkbox-label" style="padding-right: 1.6rem;">
+                            <input type="checkbox" ${rec.serviceMeeting ? "checked" : ""} onchange="setDailyFlag('${person.id}','serviceMeeting', this.checked)" />
+                            <span class="checkmark"></span>
+                            حضور اجتماع الخدمة
+                        </label>
+                    </div>
                 </div>
                 <div class="attendance-status">
-                    <button class="status-btn status-${status}" onclick="toggleAttendance('${person.id}')">
-                        ${getStatusText(status)}
+                    <button class="status-btn status-${rec.status}" onclick="toggleAttendance('${person.id}')">
+                        ${getStatusText(rec.status)}
                     </button>
                 </div>
             </div>
@@ -255,7 +295,9 @@ function getStatusText(status) {
 
 function toggleAttendance(personId) {
     const selectedDate = selectedAttendanceDate || getCurrentDateString();
-    const currentStatus = attendanceRecords[selectedDate][personId];
+    ensureDateRecords(selectedDate);
+    const rec = attendanceRecords[selectedDate][personId];
+    const currentStatus = rec && typeof rec === "object" ? rec.status : rec;
 
     let newStatus;
     switch (currentStatus) {
@@ -272,7 +314,16 @@ function toggleAttendance(personId) {
             newStatus = "present";
     }
 
-    attendanceRecords[selectedDate][personId] = newStatus;
+    if (!attendanceRecords[selectedDate][personId] || typeof attendanceRecords[selectedDate][personId] === "string") {
+        attendanceRecords[selectedDate][personId] = {
+            status: newStatus,
+            liturgy: false,
+            bible: false,
+            serviceMeeting: false,
+        };
+    } else {
+        attendanceRecords[selectedDate][personId].status = newStatus;
+    }
     saveData();
     renderAttendanceView();
 
@@ -287,8 +338,19 @@ function toggleAttendance(personId) {
 
 function markAllPresent() {
     const selectedDate = selectedAttendanceDate || getCurrentDateString();
+    ensureDateRecords(selectedDate);
     people.forEach((person) => {
-        attendanceRecords[selectedDate][person.id] = "present";
+        const rec = attendanceRecords[selectedDate][person.id];
+        if (!rec || typeof rec === "string") {
+            attendanceRecords[selectedDate][person.id] = {
+                status: "present",
+                liturgy: false,
+                bible: false,
+                serviceMeeting: false,
+            };
+        } else {
+            rec.status = "present";
+        }
     });
     saveData();
     renderAttendanceView();
@@ -319,6 +381,11 @@ function renderPeopleView() {
                 <div class="person-details">
                     ${person.phone ? `<div><i class="fas fa-phone"></i> ${escapeHtml(person.phone)}</div>` : ""}
                     ${person.service ? `<div><i class="fas fa-briefcase"></i> ${escapeHtml(person.service)}</div>` : ""}
+                    ${
+                        person.confessionDate
+                            ? `<div><i class="fas fa-calendar"></i> آخر اعتراف: ${formatDate(person.confessionDate)}</div>`
+                            : `<div><i class="fas fa-calendar-times"></i> لم يتم تحديد تاريخ الاعتراف</div>`
+                    }
                 </div>
             </div>
             <div class="person-actions">
@@ -355,6 +422,8 @@ function editPerson(personId) {
     document.getElementById("personName").value = person.name;
     document.getElementById("personPhone").value = person.phone || "";
     document.getElementById("personService").value = person.service || "";
+    document.getElementById("confessionDate").value =
+        person.confessionDate || "";
 
     showModal();
 }
@@ -384,6 +453,7 @@ function savePerson(e) {
     const name = document.getElementById("personName").value.trim();
     const phone = document.getElementById("personPhone").value.trim();
     const service = document.getElementById("personService").value.trim();
+    const confessionDate = document.getElementById("confessionDate").value;
 
     if (!name) {
         showToast("الاسم مطلوب", "error");
@@ -397,6 +467,7 @@ function savePerson(e) {
             person.name = name;
             person.phone = phone;
             person.service = service;
+            person.confessionDate = confessionDate;
             showToast("تم تحديث الشخص بنجاح", "success");
         }
     } else {
@@ -406,6 +477,7 @@ function savePerson(e) {
             name,
             phone,
             service,
+            confessionDate,
         };
         people.push(newPerson);
 
@@ -414,7 +486,12 @@ function savePerson(e) {
         if (!attendanceRecords[today]) {
             attendanceRecords[today] = {};
         }
-        attendanceRecords[today][newPerson.id] = "pending";
+        attendanceRecords[today][newPerson.id] = {
+            status: "pending",
+            liturgy: false,
+            bible: false,
+            serviceMeeting: false,
+        };
 
         showToast("تم إضافة الشخص بنجاح", "success");
     }
@@ -443,13 +520,20 @@ function renderHistoryView() {
 
     const historyItems = people
         .map((person) => {
-            const status = records[person.id] || "pending";
+            const rec = records[person.id];
+            if (rec === undefined) return undefined;
+            if (typeof rec === "string") {
+                return { person, status: rec, liturgy: false, bible: false, serviceMeeting: false };
+            }
             return {
                 person,
-                status,
+                status: rec.status || "pending",
+                liturgy: !!rec.liturgy,
+                bible: !!rec.bible,
+                serviceMeeting: !!rec.serviceMeeting,
             };
         })
-        .filter((item) => item.status !== undefined);
+        .filter((item) => item !== undefined);
 
     historyList.innerHTML = historyItems
         .map(
@@ -458,6 +542,24 @@ function renderHistoryView() {
             <div class="attendance-info">
                 <div class="attendance-name">${escapeHtml(item.person.name)}</div>
                 <div class="attendance-service">${escapeHtml(item.person.service || "لم يتم تحديد خدمة")}</div>
+                <div class="attendance-quick-status" style="margin-top: 0.25rem;">
+                    <span class="quick-status ${item.liturgy ? "status-yes" : "status-no"}">
+                        <i class="fas ${item.liturgy ? "fa-check" : "fa-times"}"></i>
+                        القداس
+                    </span>
+                    <span class="quick-status ${item.bible ? "status-yes" : "status-no"}">
+                        <i class="fas ${item.bible ? "fa-check" : "fa-times"}"></i>
+                        الكتاب المقدس
+                    </span>
+                    <span class="quick-status ${item.serviceMeeting ? "status-yes" : "status-no"}">
+                        <i class="fas ${item.serviceMeeting ? "fa-check" : "fa-times"}"></i>
+                        اجتماع الخدمة
+                    </span>
+                    <span class="quick-status">
+                        <i class="fas fa-calendar"></i>
+                        ${item.person.confessionDate ? `آخر اعتراف: ${formatDate(item.person.confessionDate)}` : "لم يتم تحديد تاريخ الاعتراف"}
+                    </span>
+                </div>
             </div>
             <div class="attendance-status">
                 <span class="status-btn status-${item.status}">
@@ -506,6 +608,7 @@ function resetPersonForm() {
     document.getElementById("personName").value = "";
     document.getElementById("personPhone").value = "";
     document.getElementById("personService").value = "";
+    document.getElementById("confessionDate").value = "";
 }
 
 // Toast Notifications
@@ -553,6 +656,60 @@ function renderAllViews() {
 window.toggleAttendance = toggleAttendance;
 window.editPerson = editPerson;
 window.deletePerson = deletePerson;
+
+// Set a daily flag value for the selected date
+function setDailyFlag(personId, key, value) {
+    const selectedDate = selectedAttendanceDate || getCurrentDateString();
+    ensureDateRecords(selectedDate);
+    const rec = attendanceRecords[selectedDate][personId];
+    if (!rec || typeof rec === "string") {
+        attendanceRecords[selectedDate][personId] = {
+            status: typeof rec === "string" ? rec : "pending",
+            liturgy: false,
+            bible: false,
+            serviceMeeting: false,
+        };
+    }
+    attendanceRecords[selectedDate][personId][key] = !!value;
+    saveData();
+    renderAttendanceView();
+}
+window.setDailyFlag = setDailyFlag;
+
+// Migration: convert old string records to object with flags; seed today's flags from person properties if present
+function migrateAttendanceRecords() {
+    if (!attendanceRecords || typeof attendanceRecords !== "object") return;
+    const today = getCurrentDateString();
+    Object.keys(attendanceRecords).forEach((date) => {
+        const day = attendanceRecords[date];
+        if (!day || typeof day !== "object") return;
+        Object.keys(day).forEach((pid) => {
+            const val = day[pid];
+            if (typeof val === "string") {
+                day[pid] = {
+                    status: val,
+                    liturgy: false,
+                    bible: false,
+                    serviceMeeting: false,
+                };
+                // If migrating today's records, optionally seed from person static fields
+                if (date === today) {
+                    const person = people.find((p) => p.id === pid);
+                    if (person) {
+                        day[pid].liturgy = !!person.liturgyAttendance;
+                        day[pid].bible = !!person.holyBible;
+                        day[pid].serviceMeeting = !!person.serviceMeeting;
+                    }
+                }
+            } else if (typeof val === "object") {
+                val.status = val.status || "pending";
+                val.liturgy = !!val.liturgy;
+                val.bible = !!val.bible;
+                val.serviceMeeting = !!val.serviceMeeting;
+            }
+        });
+    });
+}
 
 // Prevent zoom on double tap (iOS Safari)
 let lastTouchEnd = 0;

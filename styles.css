@@ -518,6 +518,142 @@ body {
     flex: 1;
 }
 
+/* Checkbox Styles */
+.checkbox-label {
+    display: flex !important;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 0 !important;
+    position: relative;
+    padding-right: 2rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    width: 0;
+    height: 0;
+}
+
+.checkmark {
+    position: absolute;
+    right: 0;
+    height: 20px;
+    width: 20px;
+    background-color: #fff;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.checkbox-label:hover .checkmark {
+    border-color: #2196F3;
+}
+
+.checkbox-label input:checked ~ .checkmark {
+    background-color: #2196F3;
+    border-color: #2196F3;
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.checkbox-label input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.checkbox-label .checkmark:after {
+    right: 6px;
+    top: 2px;
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Person Status Styles */
+.person-status {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+.status-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    background: #f8f9fa;
+    color: #666;
+}
+
+.status-item i {
+    font-size: 0.7rem;
+}
+
+.status-yes {
+    background: #e8f5e8;
+    color: #2e7d2e;
+}
+
+.status-yes i {
+    color: #2e7d2e;
+}
+
+.status-no {
+    background: #ffeaea;
+    color: #d32f2f;
+}
+
+.status-no i {
+    color: #d32f2f;
+}
+
+.status-date {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.status-date i {
+    color: #1976d2;
+}
+
+/* Attendance Quick Status */
+.attendance-quick-status {
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+}
+
+.quick-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    background: #f8f9fa;
+    color: #666;
+}
+
+.quick-status i {
+    font-size: 0.6rem;
+}
+
 /* Empty State */
 .empty-state {
     text-align: center;
