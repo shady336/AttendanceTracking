@@ -4,8 +4,8 @@
     "database-type": "cosmosdb_nosql",
     "connection-string": "@env('COSMOSDB_CONNECTION_STRING')",
     "options": {
-  "database": "attendance",
-  "schema": "staticwebapp.database.schema.gql"
+      "database": "attendance-tracking-db-database",
+      "schema": "staticwebapp.database.schema.gql"
     }
   },
   "runtime": {
@@ -27,10 +27,7 @@
   },
   "entities": {
     "people": {
-      "source": {
-        "container": "people",
-        "partitionKey": "/id"
-      },
+      "source": "people",
       "permissions": [
         {
           "actions": ["create", "read", "update", "delete"],
@@ -39,10 +36,7 @@
       ]
     },
     "attendance": {
-      "source": {
-        "container": "attendance",
-        "partitionKey": "/date"
-      },
+      "source": "attendance",
       "permissions": [
         {
           "actions": ["create", "read", "update", "delete"],
