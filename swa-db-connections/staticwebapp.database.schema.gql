@@ -1,0 +1,20 @@
+# GraphQL schema for Cosmos DB NoSQL (SWA Data API)
+# Minimal definitions to satisfy Cosmos schema requirement; REST will also work.
+
+type people @model(name: "people") {
+  id: ID!
+  name: String
+  phone: String
+  service: String
+  confessionDate: String
+}
+
+type attendance @model(name: "attendance") {
+  id: ID
+  date: String!
+  personId: String
+  status: String
+  liturgy: Boolean
+  bible: Boolean
+  serviceMeeting: Boolean
+}

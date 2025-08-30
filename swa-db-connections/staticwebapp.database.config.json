@@ -1,10 +1,11 @@
 {
   "$schema": "https://github.com/Azure/data-api-builder/releases/latest/download/dab.draft.schema.json",
   "data-source": {
-    "database-type": "mssql",
-    "connection-string": "@env('DATABASE_CONNECTION_STRING')",
+    "database-type": "cosmosdb_nosql",
+    "connection-string": "@env('COSMOSDB_CONNECTION_STRING')",
     "options": {
-      "set-session-context": false
+  "database": "attendance",
+  "schema": "staticwebapp.database.schema.gql"
     }
   },
   "runtime": {
@@ -12,9 +13,7 @@
       "enabled": true,
       "path": "/rest"
     },
-    "graphql": {
-      "enabled": false
-    },
+  "graphql": { "enabled": false },
     "host": {
       "mode": "production",
       "cors": {
@@ -28,7 +27,7 @@
   },
   "entities": {
     "people": {
-      "source": "dbo.people",
+      "source": "people",
       "permissions": [
         {
           "actions": ["create", "read", "update", "delete"],
@@ -37,7 +36,7 @@
       ]
     },
     "attendance": {
-      "source": "dbo.attendance",
+      "source": "attendance",
       "permissions": [
         {
           "actions": ["create", "read", "update", "delete"],
