@@ -15,28 +15,19 @@ const personForm = document.getElementById("personForm");
 const toast = document.getElementById("toast");
 
 // Initialize Application
-document.addEventListener("DOMContentLoaded", async function () {
+document.addEventListener("DOMContentLoaded", function () {
     initializeApp();
-    // Load local cache first for instant UI
-    loadLocalData();
+    loadData();
     updateCurrentDate();
     renderAllViews();
     setupEventListeners();
-
-    // Best-effort sync from SWA Data API (if configured)
-    try {
-        await syncPeopleFromDb();
-        renderAllViews();
-    } catch (e) {
-        console.warn("Data API sync skipped:", e?.message || e);
-    }
 
     // Register service worker for offline functionality
     if ("serviceWorker" in navigator) {
         navigator.serviceWorker
             .register("service-worker.js")
-            .then(() => console.log("SW registered"))
-            .catch(() => console.log("SW registration failed"));
+            .then((registration) => console.log("SW registered"))
+            .catch((error) => console.log("SW registration failed"));
     }
 });
 
@@ -56,7 +47,7 @@ function initializeApp() {
 }
 
 // Data Management
-function loadLocalData() {
+function loadData() {
     try {
         const savedPeople = localStorage.getItem("attendancePeople");
         const savedRecords = localStorage.getItem("attendanceRecords");
@@ -75,87 +66,6 @@ function loadLocalData() {
         people = [];
         attendanceRecords = {};
     }
-}
-
-// -------- Azure Static Web Apps Data API integration (People) --------
-const DATA_API_BASE = "/data-api/rest"; // SWA Data API REST base path
-let dataApiAvailable = null; // cache endpoint availability
-
-async function isDataApiAvailable() {
-    if (dataApiAvailable !== null) return dataApiAvailable;
-    try {
-        const res = await fetch(`${DATA_API_BASE}/people`, { method: "GET" });
-        // If endpoint exists, we may get 200/401/403/400 (400 often means DB/config issue but endpoint is present)
-        dataApiAvailable = res.ok || res.status === 401 || res.status === 403 || res.status === 400;
-    } catch {
-        dataApiAvailable = false;
-    }
-    return dataApiAvailable;
-}
-
-async function syncPeopleFromDb() {
-    const available = await isDataApiAvailable();
-    if (!available) return; // skip when Data API not configured
-    const res = await fetch(`${DATA_API_BASE}/people`);
-    if (!res.ok) throw new Error(`People fetch failed: ${res.status}`);
-    const payload = await res.json();
-    const list = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.value)
-        ? payload.value
-        : Array.isArray(payload?.items)
-        ? payload.items
-        : [];
-    if (!Array.isArray(list)) return;
-    people = list.map((p) => ({
-        id: p.id ?? p.Id ?? p._id ?? generateId(),
-        name: p.name ?? p.Name ?? "",
-        phone: p.phone ?? p.Phone ?? "",
-        service: p.service ?? p.Service ?? "",
-        confessionDate: p.confessionDate ?? p.ConfessionDate ?? "",
-    }));
-    localStorage.setItem("attendancePeople", JSON.stringify(people));
-    ensureTodayRecords();
-}
-
-async function createPersonInDb(person) {
-    if (!(await isDataApiAvailable())) return false;
-    const res = await fetch(`${DATA_API_BASE}/people`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            id: person.id,
-            name: person.name,
-            phone: person.phone,
-            service: person.service,
-            confessionDate: person.confessionDate,
-        }),
-    });
-    return res.ok;
-}
-
-async function updatePersonInDb(person) {
-    if (!(await isDataApiAvailable())) return false;
-    const id = encodeURIComponent(person.id);
-    const res = await fetch(`${DATA_API_BASE}/people/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            id: person.id,
-            name: person.name,
-            phone: person.phone,
-            service: person.service,
-            confessionDate: person.confessionDate,
-        }),
-    });
-    return res.ok;
-}
-
-async function deletePersonInDb(personId) {
-    if (!(await isDataApiAvailable())) return false;
-    const id = encodeURIComponent(personId);
-    const res = await fetch(`${DATA_API_BASE}/people/${id}`, { method: "DELETE" });
-    return res.ok || res.status === 204;
 }
 
 function saveData() {
@@ -531,11 +441,6 @@ function deletePerson(personId) {
             delete attendanceRecords[date][personId];
         });
 
-        // Best-effort delete from DB
-        deletePersonInDb(personId).then((ok) => {
-            if (!ok) console.warn("Delete person not synced to DB (offline/not configured)");
-        });
-
         saveData();
         renderAllViews();
         showToast(`تم حذف ${person.name} بنجاح`, "success");
@@ -564,11 +469,6 @@ function savePerson(e) {
             person.service = service;
             person.confessionDate = confessionDate;
             showToast("تم تحديث الشخص بنجاح", "success");
-            // Best-effort sync with DB
-            updatePersonInDb(person).then((ok) => {
-                if (!ok) console.warn("Update person not synced to DB (offline/not configured)");
-                saveData();
-            });
         }
     } else {
         // Add new person
@@ -594,11 +494,6 @@ function savePerson(e) {
         };
 
         showToast("تم إضافة الشخص بنجاح", "success");
-        // Best-effort persist to DB
-        createPersonInDb(newPerson).then((ok) => {
-            if (!ok) console.warn("Create person not synced to DB (offline/not configured)");
-            saveData();
-        });
     }
 
     saveData();
